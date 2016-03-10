@@ -1,9 +1,9 @@
-function [Sim] = TestSim()
-% close all
+function [NextState, reward] = RunCBStep(State,ControllerParams)
+
 
 Sim = Simulation();
 Sim.Graphics = 1;
-Sim.EndCond = [1,1]; % Run until converge
+Sim.EndCond = 2;%[1,5]; % Run until converge
 
 % Set up the compass biped model
 Sim.Mod = Sim.Mod.Set('damp',0,'I',0);
@@ -24,10 +24,9 @@ Sim.Con = Sim.Con.AddPulse('joint',2,'amp',5.1913,'offset',0.1665,'dur',0.0537);
 
 % Simulation parameters
 Sim = Sim.SetTime(0,0.05,60);
-%Sim.IC = [0.13, -0.1, -0.4, -0.25, 0];
- Sim.IC = [0., 0., 0., 0., 0.];
-% Sim.IC = [0.1393442, -0.1393442, -0.5933174, -0.4680616, 0.8759402];
-%Sim.IC = [thetta, theta_dot, phi_0];
+ %Sim.IC = [0., 0., 0., 0., 0.];
+ Sim.IC = [0.1393442, -0.1393442, -0.5933174, -0.4680616, 0.8759402];
+
 
 % Set internal parameters (state dimensions, events, etc)
 Sim = Sim.Init();
