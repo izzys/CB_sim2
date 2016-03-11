@@ -1,7 +1,7 @@
 function [Sim] = TestSim()
 % close all
 
-Sim = Simulation();
+Sim = cbSimulation();
 Sim.Graphics = 1;
 Sim.EndCond = [1,1]; % Run until converge
 

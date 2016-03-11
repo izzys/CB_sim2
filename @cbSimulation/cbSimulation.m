@@ -1,4 +1,4 @@
-classdef Simulation < handle & matlab.mixin.Copyable
+classdef cbSimulation < handle & matlab.mixin.Copyable
     % Version 0.2 - 10/05/2014
     % This simulation integrates a system over time until
     % an event occurs, then it performs some calculations
@@ -10,6 +10,44 @@ classdef Simulation < handle & matlab.mixin.Copyable
         Con; % Controller
         Env; % Environment
     
+        % RL params:
+        Xdim;
+        Adim;
+        Wdim;
+        W;
+
+        const_IC = [0.1 0 0 0 0] ;
+        random_IC = '0.1*[rand()-0.5 rand()-0.5 rand()-0.5 rand()-0.5 rand()-0.5]';
+        
+        %  state params:
+        x1_min = -2;
+        x1_max = 2;
+        x1_dim = 8;
+
+        x2_min = -2;
+        x2_max = 2;
+        x2_dim = 4;
+        
+        x3_min = -1;
+        x3_max =  1;
+        x3_dim = 4;
+        
+        x4_min = -1;
+        x4_max = 1;
+        x4_dim = 4;
+        
+        x5_min = 0;
+        x5_max = 1;
+        x5_dim = 10;  
+        
+        % discritixation matrix:
+        dX;
+        dA;  
+        Xbounds;
+        
+        % render
+        RenderObj;
+
         % State params
         stDim; ModCo; ConCo;
         % Event params
@@ -56,6 +94,8 @@ classdef Simulation < handle & matlab.mixin.Copyable
         FigWidth; FigHeight; AR;
         % Environment display
         FlMin; FlMax; HeightMin; HeightMax;
+        plotObj;
+        plot_model_handle;
         
         Follow = 1; % Follow model with camera
         % COM transformation
@@ -74,7 +114,7 @@ classdef Simulation < handle & matlab.mixin.Copyable
     
     methods
         % %%%%%% % Class constructor % %%%%%% %
-        function sim = Simulation(varargin)
+        function sim = cbSimulation(varargin)
             switch nargin
                 case 3
                     sim.Mod = varargin{1};
@@ -122,7 +162,7 @@ classdef Simulation < handle & matlab.mixin.Copyable
             if nargin~=4
                 if nargin == 3
                     sim.tstart = varargin{1};
-                    sim.tstep = 0.0111;
+                    sim.tstep = 0.05;
                     if isnumeric(varargin{2})
                         sim.tend = varargin{2};
                         sim.infTime = 0;
@@ -180,14 +220,21 @@ classdef Simulation < handle & matlab.mixin.Copyable
         end
 
         function StopButtonCb(sim, hObject, eventdata, handles) %#ok<INUSD>
-            if sim.StopSim == 0
-                sim.StopSim = 1;
-                sim.Out.Type = -1;
-                sim.Out.Text = 'Simulation stopped by user';
-                set(hObject,'String','Close Window');
+%             if sim.StopSim == 0
+%                 sim.StopSim = 1;
+%                 sim.Out.Type = -1;
+%                 sim.Out.Text = 'Simulation stopped by user';
+%                 set(hObject,'String','Close Window');
+%             else
+%                 close(sim.Fig)
+%             end
+
+            if sim.Graphics
+                sim.Graphics=0;
             else
-                close(sim.Fig)
+                sim.Graphics=1;
             end
+
         end  % StopButtonCallback
                 
         function out = JoinOuts(sim,ext_out,last_i)

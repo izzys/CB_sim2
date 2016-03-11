@@ -68,5 +68,20 @@ function [ sim ] = Init( sim )
     
     % Adapt CPG (if adaptive)
     sim.Con = sim.Con.Adaptation(sim.Env.SurfSlope(sim.Mod.xS));
+    
+    sim.Xdim = [sim.x1_dim sim.x2_dim sim.x3_dim sim.x4_dim sim.x5_dim];
+            
+    sim.Xbounds = [ sim.x1_min  sim.x1_max ;
+    sim.x2_min  sim.x2_max ;
+    sim.x3_min  sim.x3_max ;
+    sim.x4_min  sim.x4_max ;
+    sim.x5_min  sim.x5_max ]; 
+    
+    sim.dX(1) = diff([ sim.x1_min  sim.x1_max ])/ sim.x1_dim ;
+    sim.dX(2) = diff([ sim.x2_min  sim.x2_max ])/ sim.x2_dim ;
+    sim.dX(3) = diff([ sim.x3_min  sim.x3_max ])/ sim.x3_dim ;
+    sim.dX(4) = diff([ sim.x4_min  sim.x4_max ])/ sim.x4_dim ;
+    sim.dX(5) = diff([ sim.x5_min  sim.x5_max ])/ sim.x5_dim ;
+    
 end
 

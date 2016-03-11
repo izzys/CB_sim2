@@ -1,20 +1,9 @@
-function [NextState, reward] = RunCBStep(State,ControllerParams)
+function [NextState, reward,failed] = RunCBStep(Sim,State,ControllerParams)
 
-
-Sim = Simulation();
-Sim.Graphics = 1;
-Sim.EndCond = 2;%[1,5]; % Run until converge
-
-% Set up the compass biped model
-Sim.Mod = Sim.Mod.Set('damp',0,'I',0);
 
 % Set up the terrain
 start_slope = 0;
 Sim.Env = Sim.Env.Set('Type','inc','start_slope',start_slope);
-% leadway = 5;
-% parK = 0.01;
-% Sim.Env = ...
-%     Sim.Env.Set('Type','inf','start_slope',0,'parK',parK,'start_x',leadway);
 
 % Set up the controller
 Sim.Con = Sim.Con.ClearTorques();
@@ -23,9 +12,8 @@ Sim.Con = Sim.Con.AddPulse('joint',1,'amp',-7.3842,'offset',0.1268,'dur',0.07227
 Sim.Con = Sim.Con.AddPulse('joint',2,'amp',5.1913,'offset',0.1665,'dur',0.0537);
 
 % Simulation parameters
-Sim = Sim.SetTime(0,0.05,60);
- %Sim.IC = [0., 0., 0., 0., 0.];
- Sim.IC = [0.1393442, -0.1393442, -0.5933174, -0.4680616, 0.8759402];
+%Sim.IC = [0., 0., 0., 0., 0.];
+Sim.IC = [0.1393442, -0.1393442, -0.5933174, -0.4680616, 0.8759402];
 
 
 % Set internal parameters (state dimensions, events, etc)
@@ -39,6 +27,7 @@ Sim.Con = Sim.Con.HandleExtFB(Sim.IC(Sim.ModCo),Sim.IC(Sim.ConCo));
 % Simulate
 Sim = Sim.Run();
 
+
 % Calculate eigenvalues
 if Sim.Out.Type == 5
     [EigVal,EigVec] = Sim.Poincare();
@@ -48,5 +37,8 @@ else
     EigVal = 2*ones(4,1);
     disp(Sim.Out.Text);
 end
+
+NextState = 1;
+reward = 1;
 
 end

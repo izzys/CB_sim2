@@ -6,27 +6,29 @@ function status = Render(sim,t,X,flag)
 
             if sim.Once
                 % Open new figure
-                if ishandle(sim.Fig) && strcmp(get(sim.Fig,'type'),'figure')
-                    figure(sim.Fig);
-                    if isempty(findobj(gcf,'Type','uicontrol'))
-                        % Make window larger
-                        set(sim.Fig,'Position', [100 100,...
-                            sim.FigWidth sim.FigHeight]);
-                    end
-                else
-                    sim.Fig = figure();
-                    % Make window larger
-                    set(sim.Fig,'Position', [100 100,...
-                        sim.FigWidth sim.FigHeight]);
-                end
+%                 if ishandle(sim.Fig) && strcmp(get(sim.Fig,'type'),'figure')
+%                     figure(sim.Fig);
+%                     if isempty(findobj(gcf,'Type','uicontrol'))
+%                         % Make window larger
+%                         set(sim.Fig,'Position', [100 100,...
+%                             sim.FigWidth sim.FigHeight]);
+%                     end
+%                 else
+                     sim.Fig = sim.plot_model_handle;
+%                     % Make window larger
+%                     set(sim.Fig,'Position', [100 100,...
+%                         sim.FigWidth sim.FigHeight]);
+%                 end
+
+
                 set(gca,'LooseInset',get(gca,'TightInset')*2)
                 cla % clear previous render
 
                 % Initialize COM tranform for "follow" mode
-                sim.tCOM = hgtransform('Parent',gca);
+                sim.plotObj.tCOM = hgtransform('Parent',gca);
 
                 % Initialize display timer
-                sim.hTime = uicontrol('Style', 'text',...
+                sim.plotObj.hTime = uicontrol('Style', 'text',...
                     'String', sprintf(sim.TimeStr,t,X(sim.ConCo),...
                         sim.Env.SurfSlope(sim.Mod.xS)*180/pi,sim.Mod.curSpeed),...
                     'HorizontalAlignment','left',...
@@ -36,7 +38,7 @@ function status = Render(sim,t,X,flag)
                     'backgroundcolor',get(gca,'color')); 
                 
                 % Initialize convergence display
-                sim.hConv = uicontrol('Style', 'text',...
+                sim.plotObj.hConv = uicontrol('Style', 'text',...
                     'String', sprintf(sim.ConvStr,1,'-'),...
                     'HorizontalAlignment','left',...
                     'FontSize',12,...
@@ -45,26 +47,26 @@ function status = Render(sim,t,X,flag)
                     'backgroundcolor',get(gca,'color')); 
 
                 % Add a 'Stop simulation' button
-                uicontrol('Style', 'pushbutton', 'String', 'Stop Simulation',...
+                uicontrol('Style', 'pushbutton', 'String', 'Graphics',...
                     'Units','normalized','FontSize',12,...
-                    'Position', [0.87 0.9 0.1 0.05],...
+                    'Position', [0.9 0.9 0.07 0.05],...
                     'Callback', @sim.StopButtonCb);
                 sim.Once = 0;
 
                 % Render torque plots
                 if sim.Con.nPulses>0
-                    sim.hTorques = zeros(sim.nOuts,1);                
+                    sim.plotObj.hTorques = zeros(sim.nOuts,1);                
                     for to = 1:sim.nOuts
-                        sim.hTorques(to) = line(sim.Ttime,...
+                        sim.plotObj.hTorques(to) = line(sim.Ttime,...
                             sim.Tbase+sim.Thold(to,:)*sim.Tscale,...
-                            'parent',sim.tCOM,'Color',sim.Colors{to},...
+                            'parent',sim.plotObj.tCOM,'Color',sim.Colors{to},...
                             'LineWidth',2);
                     end
                 end
             end
     end
     
-    if ishandle(sim.tCOM)==0
+    if ishandle(sim.plotObj.tCOM)==0
         sim.Once = 1;
         status = Render(sim,t,X,flag);
         return
@@ -99,7 +101,7 @@ function status = Render(sim,t,X,flag)
         % Update environment render
         sim.Env = sim.Env.Render(sim.FlMin,sim.FlMax);
         % Update time display
-        set(sim.hTime,'string',...
+        set(sim.plotObj.hTime,'string',...
             sprintf(sim.TimeStr,t(1),X(sim.ConCo),...
                 sim.Env.SurfSlope(sim.Mod.xS)*180/pi,sim.Mod.curSpeed));
         % Update convergence display
@@ -107,14 +109,14 @@ function status = Render(sim,t,X,flag)
         if ~isempty(Period)
 %             diff = norm(sim.ICstore(:,1) - sim.ICstore(:,1+Period));
             diff = min(sim.ICdiff);
-            set(sim.hConv,'string',...
+            set(sim.plotObj.hConv,'string',...
                 sprintf(sim.ConvStr,diff,int2str(Period)),...
                     'backgroundcolor',[0.5 1 0.5]);
         else
 %             diff = norm(sim.ICstore(:,1) - sim.ICstore(:,2));
             diff = min(sim.ICdiff);
             Period = find(sim.ICdiff == diff, 1, 'first');
-            set(sim.hConv,'string',...
+            set(sim.plotObj.hConv,'string',...
                 sprintf(sim.ConvStr,diff,['(',int2str(Period),')']),...
                     'backgroundcolor',get(gca,'color'));
         end
@@ -123,7 +125,7 @@ function status = Render(sim,t,X,flag)
             sim.Thold(:,1:end-1) = sim.Thold(:,2:end);
             sim.Thold(:,end) = sim.Mod.Torques;
             for to = 1:sim.nOuts
-                set(sim.hTorques(to),...
+                set(sim.plotObj.hTorques(to),...
                     'XData',sim.Ttime,...
                     'YData',sim.Tbase + sim.Thold(to,:)*sim.Tscale);
             end
