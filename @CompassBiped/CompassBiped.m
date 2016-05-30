@@ -392,7 +392,13 @@ classdef CompassBiped < handle & matlab.mixin.Copyable
             % Coordinates are switched at impact,
             % angular velocities are already switched when
             % impact is calculated
-            Xa=[Xb(2), Xb(1), Xdotnew(1), Xdotnew(2)];
+            d1 = normrnd(0,0.05);
+            d2 = normrnd(0,0.05);
+            
+            Xa=[Xb(2), Xb(1), Xdotnew(1)+d1, Xdotnew(2)+d2];
+            
+            
+            
         end
         
         % %%%%%% % Events % %%%%%% %
@@ -413,7 +419,7 @@ classdef CompassBiped < handle & matlab.mixin.Copyable
             value(2)=HipPosy-CB.yS-0.7*CB.L;
             
             % Check for the swing leg angular velocity crossing 0 (from +)
-%             value(3)=X(4);
+             value(3)=X(4);
         end
         
         % %%%%%% % Events % %%%%%% %

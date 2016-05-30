@@ -4,7 +4,9 @@ function [ sim ] = Init( sim )
     sim.stDim = sim.Mod.stDim + sim.Con.stDim; % state dimension
     sim.ModCo = 1:sim.Mod.stDim; % Model coord. indices
     sim.ConCo = sim.Mod.stDim+1:sim.stDim; % Contr. coord. indices
-    sim.nOuts = length(sim.Con.NeurOutput());
+   
+%     sim.nOuts = length(sim.Con.NeurOutput());
+    sim.nOuts = length(sim.Con.GetTorques(sim.W,0));
 
     % Set events
     sim.nEvents = sim.Mod.nEvents + sim.Con.nEvents;
@@ -18,6 +20,14 @@ function [ sim ] = Init( sim )
         if sim.Fig == 0
             sim.Once = 1;
         end
+        
+        if isempty(sim.plot_model_handle)
+            figure
+            sim.plot_model_handle = gca;
+        end
+           
+        
+        
         
         % Init window size params
         scrsz = get(0, 'ScreenSize');
@@ -69,19 +79,7 @@ function [ sim ] = Init( sim )
     % Adapt CPG (if adaptive)
     sim.Con = sim.Con.Adaptation(sim.Env.SurfSlope(sim.Mod.xS));
     
-    sim.Xdim = [sim.x1_dim sim.x2_dim sim.x3_dim sim.x4_dim sim.x5_dim];
-            
-    sim.Xbounds = [ sim.x1_min  sim.x1_max ;
-    sim.x2_min  sim.x2_max ;
-    sim.x3_min  sim.x3_max ;
-    sim.x4_min  sim.x4_max ;
-    sim.x5_min  sim.x5_max ]; 
-    
-    sim.dX(1) = diff([ sim.x1_min  sim.x1_max ])/ sim.x1_dim ;
-    sim.dX(2) = diff([ sim.x2_min  sim.x2_max ])/ sim.x2_dim ;
-    sim.dX(3) = diff([ sim.x3_min  sim.x3_max ])/ sim.x3_dim ;
-    sim.dX(4) = diff([ sim.x4_min  sim.x4_max ])/ sim.x4_dim ;
-    sim.dX(5) = diff([ sim.x5_min  sim.x5_max ])/ sim.x5_dim ;
+    sim.first_step = 1;
     
 end
 

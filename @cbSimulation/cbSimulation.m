@@ -15,7 +15,10 @@ classdef cbSimulation < handle & matlab.mixin.Copyable
         Adim;
         Wdim;
         W;
-
+        Wp;
+        Sigma;
+        sigma;
+        
         const_IC = [0.1 0 0 0 0] ;
         random_IC = '0.1*[rand()-0.5 rand()-0.5 rand()-0.5 rand()-0.5 rand()-0.5]';
         
@@ -35,11 +38,7 @@ classdef cbSimulation < handle & matlab.mixin.Copyable
         x4_min = -1;
         x4_max = 1;
         x4_dim = 4;
-        
-        x5_min = 0;
-        x5_max = 1;
-        x5_dim = 10;  
-        
+                
         % discritixation matrix:
         dX;
         dA;  
@@ -58,6 +57,8 @@ classdef cbSimulation < handle & matlab.mixin.Copyable
         infTime;
         tstep; tstep_normal; tstep_small = [];
         tstart; tend; tspan;
+        first_step;
+        
         
         % Performance tracking / Statistics
         Out; % output holder
@@ -200,8 +201,12 @@ classdef cbSimulation < handle & matlab.mixin.Copyable
         end
         
         function [Xt] = Derivative(sim,t,X)
-            sim.Mod.Torques=sim.Con.NeurOutput();
-
+            
+       %      sim.Mod.Torques=sim.Con.NeurOutput();
+           
+            phi = X(sim.ConCo);
+            sim.Mod.Torques = sim.Con.GetTorques(sim.Wp,phi);
+  
             Xt = [sim.Mod.Derivative(t,X(sim.ModCo));
                   sim.Con.Derivative(t,X(sim.ConCo))];
         end

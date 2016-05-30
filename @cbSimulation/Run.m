@@ -37,9 +37,13 @@ function [ sim ] = Run( sim )
     
     if sim.nOuts>0
         % Save torques & slope
-        ThisTorques = sim.Con.NeurOutput()';
+        
+      %  ThisTorques = sim.Con.NeurOutput()';
+    %  Torques = repmat(ThisTorques,length(TTemp),1);
+    
         ThisSlope = sim.Env.SurfSlope(sim.Mod.xS);
-        Torques = repmat(ThisTorques,length(TTemp),1);
+        
+        Torques = sim.Con.GetTorques(sim.Wp,XTemp(:,5))';
         Slopes = repmat(ThisSlope,length(TTemp),1);
     end
 
@@ -77,6 +81,10 @@ function [ sim ] = Run( sim )
                     sim.StopSim = 1;
                     break;
                 end
+                
+%                 if ModEvID == 3 % Swing leg velocity ==0
+%                         sim.Mod.LegShift = 0;
+%                 end
             end
 
             % Is it a controller event?
@@ -89,15 +97,15 @@ function [ sim ] = Run( sim )
                 switch ConEvID
                     case 1 % Neuron fired
                         sim.Mod.LegShift = sim.Mod.Clearance;
-                    case 2 % Leg extension
-                        sim.Mod.LegShift = 0;
                 end 
             end
         end
 
         if sim.nOuts>0 && sim.EndZMP == 1
             % Check ZMP
-            ThisTorques = repmat(sim.Con.NeurOutput()',length(TTemp),1);
+            
+            ThisTorques = sim.Con.GetTorques(sim.Wp,XTemp(:,5))';
+          %  ThisTorques = repmat(sim.Con.NeurOutput()',length(TTemp),1);
             CleanTorques = sim.GetCleanPulses(TTemp,XTemp,ThisTorques);
             Slope = sim.Env.SurfSlope(sim.Mod.xS);
             [ZMPfront, ZMPback] = sim.Mod.GetZMP(XTemp,CleanTorques,Slope);
@@ -216,12 +224,19 @@ function [ sim ] = Run( sim )
         
         if sim.nOuts>0
             % Save torques & slope
-            ThisTorques = sim.Con.NeurOutput()';
-            ThisSlope = sim.Env.SurfSlope(sim.Mod.xS);
-            Torques = [Torques; %#ok<AGROW>
-                       repmat(ThisTorques,length(TTemp),1)];
-            Slopes = [Slopes; %#ok<AGROW>
-                      repmat(ThisSlope,length(TTemp),1)];
+        %    ThisTorques = sim.Con.NeurOutput()';
+            
+    %  Torques = repmat(ThisTorques,length(TTemp),1);
+%             Torques = [Torques; %#ok<AGROW>
+%                        repmat(ThisTorques,length(TTemp),1)];
+
+        ThisTorques = sim.Con.GetTorques(sim.Wp,XTemp(:,5))' ;
+        Torques = [Torques ; ThisTorques];%#ok<AGROW>
+        
+        ThisSlope = sim.Env.SurfSlope(sim.Mod.xS);
+        Slopes = repmat(ThisSlope,length(TTemp),1);
+        Slopes = [Slopes;repmat(ThisSlope,length(TTemp),1)]; %#ok<AGROW>
+                      
         end
     end
     

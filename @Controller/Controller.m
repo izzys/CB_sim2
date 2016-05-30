@@ -19,7 +19,7 @@ classdef Controller < handle & matlab.mixin.Copyable
         P_0 = 0;
                 
         stDim = 1; % state dimension
-        nEvents = 2; % num. of simulation events
+        nEvents = 1; % num. of simulation events
         
         % Controller Output
         nPulses = 0; % Overall number of pulses
@@ -86,7 +86,7 @@ classdef Controller < handle & matlab.mixin.Copyable
             NC.kTorques_u= 0; %[95 -443 95 0];
             NC.kTorques_d= 0; %[80 -295 80 0];
             
-            NC.nEvents=1+NC.nPulses*2+1;
+%              NC.nEvents=1+NC.nPulses*2+1;
         end
         
         function [NC] = ClearTorques(NC)
@@ -118,10 +118,29 @@ classdef Controller < handle & matlab.mixin.Copyable
             end 
         end
         
-        function [Torques] = NeurOutput(NC)
+        function [Torques] = NeurOutput(NC) 
+            
             Torques = NC.OutM*NC.Switch;
+               
         end
-
+        
+        function [Torques] = GetTorques(NC,W,phi) % make a function of phi
+                        
+            T1 = W(1,1);
+            T2 = W(2,1);
+            
+            phi1 = 1/(2*pi)*wrapTo2Pi(  W(1,2)*2*pi );
+            phi2 = 1/(2*pi)*wrapTo2Pi(  W(1,3)*2*pi );
+            
+            phi3 = 1/(2*pi)*wrapTo2Pi(  W(2,2)*2*pi );
+            phi4 = 1/(2*pi)*wrapTo2Pi(  W(2,3)*2*pi );
+                  
+            Torques(1,:) = T1*NC.logisticFcn(phi-phi1)- T1*NC.logisticFcn(phi-phi2) ;
+            Torques(2,:) = T2*NC.logisticFcn(phi-phi3)- T2*NC.logisticFcn(phi-phi4);
+           
+           
+        end
+        
         function [per] = GetPeriod(NC)
             per = (NC.P_th-NC.P_reset)/NC.omega;
         end
@@ -180,13 +199,13 @@ classdef Controller < handle & matlab.mixin.Copyable
             value(1) = NC.P_th - X;
 
             % Check for leg extension signal (for clearance)
-            value(2) = NC.P_LegE - X;
+%             value(2) = NC.P_LegE - X;
             
             % Check for switching on/off signal
-            Xperc = NC.GetPhasePerc(X);
-            value(3:2+NC.nPulses) = NC.Offset - Xperc;
-            value(3+NC.nPulses:2+2*NC.nPulses) = ...
-                NC.Offset + NC.Duration - Xperc;
+%             Xperc = NC.GetPhasePerc(X);
+%             value(3:2+NC.nPulses) = NC.Offset - Xperc;
+%             value(3+NC.nPulses:2+2*NC.nPulses) = ...
+%                 NC.Offset + NC.Duration - Xperc;
         end
         
         function [NC,Xa] = HandleEvent(NC, EvID, Xb)
@@ -202,12 +221,15 @@ classdef Controller < handle & matlab.mixin.Copyable
                     end
                     Xa = NC.P_reset; % reset phase
                 case 2
+                    here_but_should_not_case_2 = 2222
                     % Extend the leg
                     % This is done from the simulation file
                 case num2cell(3:2+NC.nPulses)
+                    here_but_should_not_case_3 = 3333
                     % Switch on signal
                     NC.Switch(EvID-2) = NC.Amp(EvID-2);
                 case num2cell(3+NC.nPulses:2+2*NC.nPulses)
+                    here_but_should_not_case_4 = 444
                     % Switch off signal
                     PulseID = EvID-(2+NC.nPulses);
                     NC.Switch(PulseID) = 0;
@@ -316,6 +338,14 @@ classdef Controller < handle & matlab.mixin.Copyable
                 disp(['Error comparing signals: ',err]);
             end
         end
-            
-    end
+        
+        function [ h ] = logisticFcn(NC, x )
+
+                h = 1./(1+exp(-200*x));
+        end
+
+
+end
+
+
 end

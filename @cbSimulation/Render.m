@@ -14,18 +14,18 @@ function status = Render(sim,t,X,flag)
 %                             sim.FigWidth sim.FigHeight]);
 %                     end
 %                 else
-                     sim.Fig = sim.plot_model_handle;
+                    sim.Fig = sim.plot_model_handle;
 %                     % Make window larger
 %                     set(sim.Fig,'Position', [100 100,...
 %                         sim.FigWidth sim.FigHeight]);
 %                 end
 
 
-                set(gca,'LooseInset',get(gca,'TightInset')*2)
+                set(sim.plot_model_handle,'LooseInset',get(sim.plot_model_handle,'TightInset')*2)
                 cla % clear previous render
 
                 % Initialize COM tranform for "follow" mode
-                sim.plotObj.tCOM = hgtransform('Parent',gca);
+                sim.plotObj.tCOM = hgtransform('Parent',sim.plot_model_handle);
 
                 % Initialize display timer
                 sim.plotObj.hTime = uicontrol('Style', 'text',...
@@ -34,8 +34,8 @@ function status = Render(sim,t,X,flag)
                     'HorizontalAlignment','left',...
                     'FontSize',12,...
                     'Units','normalized',...
-                    'Position', [0.88 0.76 0.08 0.12],...
-                    'backgroundcolor',get(gca,'color')); 
+                    'Position', [0.91 0.76 0.08 0.12],...
+                    'backgroundcolor',get(sim.plot_model_handle,'color')); 
                 
                 % Initialize convergence display
                 sim.plotObj.hConv = uicontrol('Style', 'text',...
@@ -43,13 +43,13 @@ function status = Render(sim,t,X,flag)
                     'HorizontalAlignment','left',...
                     'FontSize',12,...
                     'Units','normalized',...
-                    'Position', [0.88 0.7 0.08 0.06],...
-                    'backgroundcolor',get(gca,'color')); 
+                    'Position', [0.91 0.7 0.08 0.06],...
+                    'backgroundcolor',get(sim.plot_model_handle,'color')); 
 
                 % Add a 'Stop simulation' button
                 uicontrol('Style', 'pushbutton', 'String', 'Graphics',...
                     'Units','normalized','FontSize',12,...
-                    'Position', [0.9 0.9 0.07 0.05],...
+                    'Position', [0.92 0.9 0.07 0.05],...
                     'Callback', @sim.StopButtonCb);
                 sim.Once = 0;
 
@@ -91,9 +91,9 @@ function status = Render(sim,t,X,flag)
             HeightMax=COMy+4/sim.AR*sim.Mod.L;
 
             TCOMx = makehgtform('translate',[COMx-sim.COMx0 COMy-sim.COMy0 0]);
-            set(sim.tCOM,'Matrix',TCOMx);
+            set(sim.plotObj.tCOM,'Matrix',TCOMx);
 
-            axis([sim.FlMin sim.FlMax HeightMin HeightMax]);
+            axis( sim.plot_model_handle, [sim.FlMin sim.FlMax HeightMin HeightMax]);
         end
 
         % Update model render
@@ -118,7 +118,7 @@ function status = Render(sim,t,X,flag)
             Period = find(sim.ICdiff == diff, 1, 'first');
             set(sim.plotObj.hConv,'string',...
                 sprintf(sim.ConvStr,diff,['(',int2str(Period),')']),...
-                    'backgroundcolor',get(gca,'color'));
+                    'backgroundcolor',get(sim.plot_model_handle,'color'));
         end
         % Update torque display
         if sim.Con.nPulses>0

@@ -1,44 +1,130 @@
-function [NextState, reward,failed] = RunCBStep(Sim,State,ControllerParams)
+function [X, reward,failed] = RunCBStep(Sim,IC,Slope)
+
+    if length(IC) == 4
+        gamm = Sim.Env.incline;
+        ic_temp = [IC(1)+gamm;-IC(1)+gamm;IC(2);IC(3);IC(4)];
+        IC = ic_temp;
+    end
+
+    Sim.IC = IC;
+
+    if Sim.first_step
+        Sim = Sim.SetTime(0,Sim.tstep,Sim.tend);
+        Sim.first_step = 0;
+    else
+        Sim = Sim.SetTime(Sim.Out.T(end),Sim.tstep,Sim.tend);
+    end
+    
+    % Set internal parameters (state dimensions, events, etc)
+%     Sim = Sim.Init();
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Initialize simulation properties
+    % Set states
+%     Sim.stDim = Sim.Mod.stDim + Sim.Con.stDim; % state dimension
+%     Sim.ModCo = 1:Sim.Mod.stDim; % Model coord. indices
+%     Sim.ConCo = Sim.Mod.stDim+1:Sim.stDim; % Contr. coord. indices
+   
+%     Sim.nOuts = length(Sim.Con.NeurOutput());
+    Sim.nOuts = length(Sim.Con.GetTorques(Sim.W,0));
+
+    % Set events
+    Sim.nEvents = Sim.Mod.nEvents + Sim.Con.nEvents;
+    Sim.ModEv = 1:Sim.Mod.nEvents; % Model events indices
+    Sim.ConEv = Sim.Mod.nEvents+1:Sim.nEvents; % Contr. events indices
+    
+    Sim.StopSim = 0;
+        
+    % Set render params
+    if Sim.Graphics == 1 && Sim.Once
+        if Sim.Fig == 0
+            Sim.Once = 1;
+        end
+        
+        % Init window size params
+        scrsz = get(0, 'ScreenSize');
+        if scrsz(3)>2*scrsz(4) % isunix()
+            % If 2 screens are used in Linux
+            scrsz(3) = scrsz(3)/2;
+        end
+        Sim.FigWidth = scrsz(3)-250;
+        Sim.FigHeight = scrsz(4)-250;
+        Sim.AR = Sim.FigWidth/Sim.FigHeight;
+        if isempty(Sim.IC)
+            [Sim.COMx0,Sim.COMy0] = Sim.Mod.GetPos(zeros(1,Sim.Mod.stDim),'COM');
+        else
+            [Sim.COMx0,Sim.COMy0] = Sim.Mod.GetPos(Sim.IC(Sim.ModCo),'COM');
+        end
+        
+        % Init world size params
+        Sim.FlMin = Sim.COMx0-1.25*Sim.AR*Sim.Mod.L;
+        Sim.FlMax = Sim.COMx0+1.25*Sim.AR*Sim.Mod.L;
+        Sim.HeightMin = Sim.COMy0-1/Sim.AR*Sim.Mod.L;
+        Sim.HeightMax = Sim.COMy0+4/Sim.AR*Sim.Mod.L;
+
+        % Init torque display params
+        if Sim.Con.nPulses>0
+            % Set number of steps so a whole cycle of the oscillator
+            % will be included
+            Sim.nTsteps = ceil(Sim.Con.GetPeriod()/Sim.tstep);
+            Sim.Ttime = linspace(Sim.FlMax*0.8,Sim.FlMax*0.95,Sim.nTsteps);
+            Sim.Thold = zeros(Sim.nOuts,Sim.nTsteps);
+            Sim.Tbase = (Sim.HeightMax+Sim.HeightMin)/2;
+            Sim.Tscale = 0.1*(Sim.HeightMax-Sim.HeightMin)/max(abs(Sim.Con.Amp0));
+        end
+        
+        Sim.Mod.curSpeed = 'Computing...';
+    end
+    
+    Sim.StepsTaken = 0;
+    Sim.Steps2Slope = [];
+    Sim.MinSlope = 0;
+    Sim.MaxSlope = 0;
+    Sim.ICstore = zeros(Sim.stDim, Sim.nICsStored);
+    Sim.ICdiff = ones(1,Sim.nICsStored-1);
+    Sim.stepsSS = zeros(1,Sim.nICsStored-1);
+    
+    % Init Sim.End result
+    Sim.Out.Type = 0;
+    Sim.Out.Text = 'Reached end of tspan';
+    
+    % Adapt CPG (if adaptive)
+    Sim.Con = Sim.Con.Adaptation(Sim.Env.SurfSlope(Sim.Mod.xS));
+        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%             
+              
+    % Some more simulation initialization
+    Sim.Mod.LegShift = Sim.Mod.Clearance;
+
+    % set controller values:
+%     Sim.Con = Sim.Con.ClearTorques();
+%     Sim.Con = Sim.Con.Set('omega0',1.2666,'FBType',0);
+%     Sim.Con = Sim.Con.AddPulse('joint',1,'amp',Sim.Wp(1),'offset',Sim.Wp(3),'dur',Sim.Wp(5));
+%     Sim.Con = Sim.Con.AddPulse('joint',2,'amp',Sim.Wp(2),'offset',Sim.Wp(4),'dur',Sim.Wp(6));
 
 
-% Set up the terrain
-start_slope = 0;
-Sim.Env = Sim.Env.Set('Type','inc','start_slope',start_slope);
+    % Sim.Con = Sim.Con.HandleEvent(1, Sim.IC(Sim.ConCo));
+    Sim.Con.lastPhi = Slope;
+    Sim.Con = Sim.Con.HandleExtFB(Sim.IC(Sim.ModCo),Sim.IC(Sim.ConCo),Slope);
+    
+    Sim.Con = Sim.Con.Reset(Sim.IC(Sim.ConCo));
+    
+    % Simulate
+    Sim = Sim.Run();
 
-% Set up the controller
-Sim.Con = Sim.Con.ClearTorques();
-Sim.Con = Sim.Con.Set('omega0',1.2666,'P_LegE',0.5973,'FBType',0);
-Sim.Con = Sim.Con.AddPulse('joint',1,'amp',-7.3842,'offset',0.1268,'dur',0.07227);
-Sim.Con = Sim.Con.AddPulse('joint',2,'amp',5.1913,'offset',0.1665,'dur',0.0537);
+    failed = 0;
+    reward = 1;
+    x = Sim.ICstore(:,1);
+    
+    if Sim.Out.Type ~= 4
+        failed = 1;
+        reward = 0;
+        x = nan(1,5);
+    end
+    
+  %  State=Sim.Out;
+    
 
-% Simulation parameters
-%Sim.IC = [0., 0., 0., 0., 0.];
-Sim.IC = [0.1393442, -0.1393442, -0.5933174, -0.4680616, 0.8759402];
-
-
-% Set internal parameters (state dimensions, events, etc)
-Sim = Sim.Init();
-
-% Some more simulation initialization
-Sim.Mod.LegShift = Sim.Mod.Clearance;
-% Sim.Con = Sim.Con.HandleEvent(1, Sim.IC(Sim.ConCo));
-Sim.Con = Sim.Con.HandleExtFB(Sim.IC(Sim.ModCo),Sim.IC(Sim.ConCo));
-
-% Simulate
-Sim = Sim.Run();
-
-
-% Calculate eigenvalues
-if Sim.Out.Type == 5
-    [EigVal,EigVec] = Sim.Poincare();
-    % Do some plots
-    disp(EigVal);
-else
-    EigVal = 2*ones(4,1);
-    disp(Sim.Out.Text);
-end
-
-NextState = 1;
-reward = 1;
-
+    X = [x(1);x(2);x(3);x(4);x(5)];
+   
 end
